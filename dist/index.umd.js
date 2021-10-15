@@ -6,17 +6,21 @@
 
 function createError(message) {
     var err = new Error(message);
-    err.source = "ulid";
+    err.source = "hmtid";
     return err;
 }
-// These values should NEVER change. If
-// they do, we're no longer making ulids!
 var ENCODING = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // Crockford's Base32
 var ENCODING_LEN = ENCODING.length;
 var TIME_MAX = Math.pow(2, 48) - 1;
-var TIME_LEN = 10;
-var RANDOM_LEN = 16;
-function replaceCharAt(str, index, char) {
+var RANDOM_LEN = 7;
+var SEPARATOR = "_";
+exports.maxRandomCharacter = "";
+for (var i = 0; i < RANDOM_LEN; i++) {
+    exports.maxRandomCharacter += ENCODING[ENCODING_LEN - 1];
+}var minRandomCharacter = "";
+for (var _i = 0; _i < RANDOM_LEN; _i++) {
+    minRandomCharacter += ENCODING[0];
+}function replaceCharAt(str, index, char) {
     if (index > str.length - 1) {
         return str;
     }
@@ -52,7 +56,7 @@ function randomChar(prng) {
     }
     return ENCODING.charAt(rand);
 }
-function encodeTime(now, len) {
+function encodeTime(now) {
     if (isNaN(now)) {
         throw new Error(now + " must be a number");
     }
@@ -65,14 +69,7 @@ function encodeTime(now, len) {
     if (Number.isInteger(now) === false) {
         throw createError("time must be an integer");
     }
-    var mod = void 0;
-    var str = "";
-    for (; len > 0; len--) {
-        mod = now % ENCODING_LEN;
-        str = ENCODING.charAt(mod) + str;
-        now = (now - mod) / ENCODING_LEN;
-    }
-    return str;
+    return new Date(now).toISOString().replace(/^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d).+?$/, '$1$2$3$4$5$6');
 }
 function encodeRandom(len, prng) {
     var str = "";
@@ -80,22 +77,6 @@ function encodeRandom(len, prng) {
         str = randomChar(prng) + str;
     }
     return str;
-}
-function decodeTime(id) {
-    if (id.length !== TIME_LEN + RANDOM_LEN) {
-        throw createError("malformed ulid");
-    }
-    var time = id.substr(0, TIME_LEN).split("").reverse().reduce(function (carry, char, index) {
-        var encodingIndex = ENCODING.indexOf(char);
-        if (encodingIndex === -1) {
-            throw createError("invalid character found: " + char);
-        }
-        return carry += encodingIndex * Math.pow(ENCODING_LEN, index);
-    }, 0);
-    if (time > TIME_MAX) {
-        throw createError("malformed ulid, timestamp too large");
-    }
-    return time;
 }
 function detectPrng() {
     var allowInsecure = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
@@ -129,48 +110,46 @@ function detectPrng() {
     }
     throw createError("secure crypto unusable, insecure Math.random not allowed");
 }
-function factory(currPrng) {
-    if (!currPrng) {
-        currPrng = detectPrng();
-    }
-    return function ulid(seedTime) {
-        if (isNaN(seedTime)) {
-            seedTime = Date.now();
-        }
-        return encodeTime(seedTime, TIME_LEN) + encodeRandom(RANDOM_LEN, currPrng);
-    };
-}
 function monotonicFactory(currPrng) {
     if (!currPrng) {
         currPrng = detectPrng();
     }
     var lastTime = 0;
     var lastRandom = void 0;
-    return function ulid(seedTime) {
+    var overflowedTime = 0;
+    return function (seedTime) {
         if (isNaN(seedTime)) {
             seedTime = Date.now();
         }
-        if (seedTime <= lastTime) {
+        if (seedTime < overflowedTime) {
+            seedTime = overflowedTime;
+        }
+        if (Math.floor(seedTime / 1000) <= Math.floor(lastTime / 1000)) {
+            if (lastRandom === exports.maxRandomCharacter) {
+                // Force increment seedTime when lastRandom cannot be incremented.
+                lastTime = (seedTime / 1000 + 1) * 1000; // 1sec
+                overflowedTime = lastTime;
+                var _incrementedRandom = lastRandom = minRandomCharacter;
+                return encodeTime(lastTime) + SEPARATOR + _incrementedRandom;
+            }
             var incrementedRandom = lastRandom = incrementBase32(lastRandom);
-            return encodeTime(lastTime, TIME_LEN) + incrementedRandom;
+            return encodeTime(lastTime) + SEPARATOR + incrementedRandom;
         }
         lastTime = seedTime;
         var newRandom = lastRandom = encodeRandom(RANDOM_LEN, currPrng);
-        return encodeTime(seedTime, TIME_LEN) + newRandom;
+        return encodeTime(seedTime) + SEPARATOR + newRandom;
     };
 }
-var ulid = factory();
+var hmtid = monotonicFactory();
 
 exports.replaceCharAt = replaceCharAt;
 exports.incrementBase32 = incrementBase32;
 exports.randomChar = randomChar;
 exports.encodeTime = encodeTime;
 exports.encodeRandom = encodeRandom;
-exports.decodeTime = decodeTime;
 exports.detectPrng = detectPrng;
-exports.factory = factory;
 exports.monotonicFactory = monotonicFactory;
-exports.ulid = ulid;
+exports.hmtid = hmtid;
 
 Object.defineProperty(exports, '__esModule', { value: true });
 

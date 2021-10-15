@@ -1,7 +1,7 @@
 {
   "name": "hmtid",
   "version": "0.1.0",
-  "description": "A universally-unique, lexicographically-sortable, identifier generator",
+  "description": "A human-readable monotonic timestamp identifier (HMTID) generator",
   "main": "./dist/index.umd.js",
   "module": "./dist/index.esm.js",
   "types": "./dist/index.d.ts",
@@ -25,14 +25,14 @@
     "rollup-plugin-babel": "^3.0.2",
     "rollup-plugin-typescript": "^0.8.1",
     "typedoc": "^0.9.0",
-    "typescript": "^2.5.3"
+    "typescript": "^4.3.5"
   },
   "scripts": {
-    "ts": "./node_modules/.bin/tsc -p .",
-    "rollup": "./node_modules/.bin/rollup -c",
+    "ts": "npx tsc -p .",
+    "rollup": "npx rollup -c",
     "build": "npm run ts && npm run rollup",
-    "test": "./node_modules/.bin/istanbul cover node_modules/mocha/bin/_mocha -- -R spec",
-    "perf": "./node_modules/.bin/matcha perf.js"
+    "test": "npx istanbul cover node_modules/mocha/bin/_mocha -- -R spec",
+    "perf": "npx matcha perf.js"
   },
   "files": [
     "bin",

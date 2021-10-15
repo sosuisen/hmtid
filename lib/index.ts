@@ -1,180 +1,156 @@
 export interface PRNG {
-  (): number
+  (): number;
 }
 
-export interface ULID {
-  (seedTime?: number): string
+export interface HMTID {
+  (seedTime?: number): string;
 }
 
 export interface LibError extends Error {
-  source: string
+  source: string;
 }
 
 function createError(message: string): LibError {
-  const err = new Error(message) as LibError
-  err.source = "ulid"
-  return err
+  const err = new Error(message) as LibError;
+  err.source = "hmtid";
+  return err;
 }
 
-// These values should NEVER change. If
-// they do, we're no longer making ulids!
-const ENCODING = "0123456789ABCDEFGHJKMNPQRSTVWXYZ" // Crockford's Base32
-const ENCODING_LEN = ENCODING.length
-const TIME_MAX = Math.pow(2, 48) - 1
-const TIME_LEN = 10
-const RANDOM_LEN = 16
+const ENCODING = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // Crockford's Base32
+const ENCODING_LEN = ENCODING.length;
+const TIME_MAX = Math.pow(2, 48) - 1;
+const RANDOM_LEN = 7;
+const SEPARATOR = "_";
+
+export let maxRandomCharacter = "";
+for (let i = 0; i < RANDOM_LEN; i++) maxRandomCharacter += ENCODING[ENCODING_LEN-1];
+let minRandomCharacter = "";
+for (let i = 0; i < RANDOM_LEN; i++) minRandomCharacter += ENCODING[0];
+
+
 
 export function replaceCharAt(str: string, index: number, char: string) {
   if (index > str.length - 1) {
-    return str
+    return str;
   }
-  return str.substr(0, index) + char + str.substr(index + 1)
+  return str.substr(0, index) + char + str.substr(index + 1);
 }
 
 export function incrementBase32(str: string): string {
-  let done: string = undefined
-  let index = str.length
-  let char
-  let charIndex
-  const maxCharIndex = ENCODING_LEN - 1
+  let done: string = undefined;
+  let index = str.length;
+  let char;
+  let charIndex;
+  const maxCharIndex = ENCODING_LEN - 1;
   while (!done && index-- >= 0) {
-    char = str[index]
-    charIndex = ENCODING.indexOf(char)
+    char = str[index];
+    charIndex = ENCODING.indexOf(char);
     if (charIndex === -1) {
-      throw createError("incorrectly encoded string")
+      throw createError("incorrectly encoded string");
     }
     if (charIndex === maxCharIndex) {
-      str = replaceCharAt(str, index, ENCODING[0])
-      continue
+      str = replaceCharAt(str, index, ENCODING[0]);
+      continue;
     }
-    done = replaceCharAt(str, index, ENCODING[charIndex + 1])
+    done = replaceCharAt(str, index, ENCODING[charIndex + 1]);
   }
   if (typeof done === "string") {
-    return done
+    return done;
   }
-  throw createError("cannot increment this string")
+  throw createError("cannot increment this string");
 }
 
 export function randomChar(prng: PRNG): string {
-  let rand = Math.floor(prng() * ENCODING_LEN)
+  let rand = Math.floor(prng() * ENCODING_LEN);
   if (rand === ENCODING_LEN) {
-    rand = ENCODING_LEN - 1
+    rand = ENCODING_LEN - 1;
   }
-  return ENCODING.charAt(rand)
+  return ENCODING.charAt(rand);
 }
 
-export function encodeTime(now: number, len: number): string {
+export function encodeTime(now: number): string {
   if (isNaN(now)) {
-    throw new Error(now + " must be a number")
+    throw new Error(now + " must be a number");
   }
   if (now > TIME_MAX) {
-    throw createError("cannot encode time greater than " + TIME_MAX)
+    throw createError("cannot encode time greater than " + TIME_MAX);
   }
   if (now < 0) {
-    throw createError("time must be positive")
+    throw createError("time must be positive");
   }
   if (Number.isInteger(now) === false) {
-    throw createError("time must be an integer")
+    throw createError("time must be an integer");
   }
-  let mod
-  let str = ""
-  for (; len > 0; len--) {
-    mod = now % ENCODING_LEN
-    str = ENCODING.charAt(mod) + str
-    now = (now - mod) / ENCODING_LEN
-  }
-  return str
+  return new Date(now).toISOString().replace(/^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d).+?$/, '$1$2$3$4$5$6');
 }
 
 export function encodeRandom(len: number, prng: PRNG): string {
-  let str = ""
+  let str = "";
   for (; len > 0; len--) {
-    str = randomChar(prng) + str
+    str = randomChar(prng) + str;
   }
-  return str
-}
-
-export function decodeTime(id: string): number {
-  if (id.length !== TIME_LEN + RANDOM_LEN) {
-    throw createError("malformed ulid")
-  }
-  var time = id
-    .substr(0, TIME_LEN)
-    .split("")
-    .reverse()
-    .reduce((carry, char, index) => {
-      const encodingIndex = ENCODING.indexOf(char)
-      if (encodingIndex === -1) {
-        throw createError("invalid character found: " + char)
-      }
-      return (carry += encodingIndex * Math.pow(ENCODING_LEN, index))
-    }, 0)
-  if (time > TIME_MAX) {
-    throw createError("malformed ulid, timestamp too large")
-  }
-  return time
+  return str;
 }
 
 export function detectPrng(allowInsecure: boolean = false, root?: any): PRNG {
   if (!root) {
-    root = typeof window !== "undefined" ? window : null
+    root = typeof window !== "undefined" ? window : null;
   }
 
-  const browserCrypto = root && (root.crypto || root.msCrypto)
+  const browserCrypto = root && (root.crypto || root.msCrypto);
 
   if (browserCrypto) {
     return () => {
-        const buffer = new Uint8Array(1)
-        browserCrypto.getRandomValues(buffer)
-        return buffer[0] / 0xff
+        const buffer = new Uint8Array(1);
+        browserCrypto.getRandomValues(buffer);
+        return buffer[0] / 0xff;
     }
   } else {
     try {
-      const nodeCrypto = require("crypto")
-      return () => nodeCrypto.randomBytes(1).readUInt8() / 0xff
+      const nodeCrypto = require("crypto");
+      return () => nodeCrypto.randomBytes(1).readUInt8() / 0xff;
     } catch (e) {}
   }
 
   if (allowInsecure) {
     try {
-      console.error("secure crypto unusable, falling back to insecure Math.random()!")
+      console.error("secure crypto unusable, falling back to insecure Math.random()!");
     } catch (e) {}
-    return () => Math.random()
+    return () => Math.random();
   }
 
-  throw createError("secure crypto unusable, insecure Math.random not allowed")
+  throw createError("secure crypto unusable, insecure Math.random not allowed");
 }
 
-export function factory(currPrng?: PRNG): ULID {
+export function monotonicFactory(currPrng?: PRNG): HMTID {
   if (!currPrng) {
-    currPrng = detectPrng()
+    currPrng = detectPrng();
   }
-  return function ulid(seedTime?: number): string {
+  let lastTime: number = 0;
+  let lastRandom: string;
+  let overflowedTime: number = 0;
+  return function (seedTime?: number): string {
     if (isNaN(seedTime)) {
       seedTime = Date.now()
     }
-    return encodeTime(seedTime, TIME_LEN) + encodeRandom(RANDOM_LEN, currPrng)
+    if (seedTime < overflowedTime) {
+      seedTime = overflowedTime;
+    }
+    if (Math.floor(seedTime / 1000) <= Math.floor(lastTime / 1000)) {
+      if (lastRandom === maxRandomCharacter) {
+        // Force increment seedTime when lastRandom cannot be incremented.
+        lastTime = (seedTime / 1000 + 1) * 1000; // 1sec
+        overflowedTime = lastTime;
+        const incrementedRandom = (lastRandom = minRandomCharacter);
+        return encodeTime(lastTime) + SEPARATOR + incrementedRandom;
+      }
+      const incrementedRandom = (lastRandom = incrementBase32(lastRandom));
+      return encodeTime(lastTime) + SEPARATOR + incrementedRandom;
+    }
+    lastTime = seedTime;
+    const newRandom = (lastRandom = encodeRandom(RANDOM_LEN, currPrng));
+    return encodeTime(seedTime) + SEPARATOR + newRandom;
   }
 }
 
-export function monotonicFactory(currPrng?: PRNG): ULID {
-  if (!currPrng) {
-    currPrng = detectPrng()
-  }
-  let lastTime: number = 0
-  let lastRandom: string
-  return function ulid(seedTime?: number): string {
-    if (isNaN(seedTime)) {
-      seedTime = Date.now()
-    }
-    if (seedTime <= lastTime) {
-      const incrementedRandom = (lastRandom = incrementBase32(lastRandom))
-      return encodeTime(lastTime, TIME_LEN) + incrementedRandom
-    }
-    lastTime = seedTime
-    const newRandom = (lastRandom = encodeRandom(RANDOM_LEN, currPrng))
-    return encodeTime(seedTime, TIME_LEN) + newRandom
-  }
-}
-
-export const ulid = factory()
+export const hmtid = monotonicFactory();
