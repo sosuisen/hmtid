@@ -9,7 +9,7 @@
 
 ## Spec
 - 14-digits current UTC timestamp (YYYYMMDDHHMMSS).
-  - e.g.) 20211015134707 (when the current UTC time is 2021-10-15 13:47:07)
+  - e.g.) 20211015134707 (shows 2021-10-15 13:47:07 UTC)
 - 7 random characters. Crockford's Base32 is used as shown. This alphabet excludes the letters I, L, O, and U to avoid confusion and abuse.
 
 ```
