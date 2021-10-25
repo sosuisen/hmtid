@@ -51,13 +51,14 @@ npm i hmtid
 ### Import
 
 ```javascript
-import { hmtid } from 'hmtid'
+import { monotonicFactory } from 'hmtid'
 ```
 
 ## Usage
 
 ```javascript
-import { hmtid } from 'hmtid'
+import { monotonicFactory } from 'hmtid'
+const hmtid = monotonicFactory();
 
 hmtid() // 202110130900_GEMMVRX
 ```

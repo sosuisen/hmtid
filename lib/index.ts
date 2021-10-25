@@ -152,5 +152,3 @@ export function monotonicFactory(currPrng?: PRNG): HMTID {
     return encodeTime(seedTime) + SEPARATOR + newRandom;
   }
 }
-
-export const hmtid = monotonicFactory();
