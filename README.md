@@ -16,8 +16,12 @@
 0123456789ABCDEFGHJKMNPQRSTVWXYZ
 ```
 
-- An underbar (_) that separates a timestamp and a random characters.
+- An separator (underbar '_' or hyphen '-') that separates a timestamp and a random characters. Default is an underbar.
 - 22 characters in total.
+
+(optional) 
+- 14 digits timestamp can be separated by underbar '_' or hyphen '-'. e.g.) YYYY_MM_DD_HH_MM_SS, YYYY-MM-DD-HH-MM-SS 
+- In such case, 27 characters in total.
 
 ## Monotonicity
 
@@ -60,7 +64,7 @@ import { monotonicFactory } from 'hmtid'
 import { monotonicFactory } from 'hmtid'
 const hmtid = monotonicFactory();
 
-hmtid() // 202110130900_GEMMVRX
+hmtid() // 20211013090001_GEMMVRX
 ```
 
 ### Seed Time
@@ -68,7 +72,28 @@ hmtid() // 202110130900_GEMMVRX
 You can also input a seed time which will consistently give you the same string for the time component. The default seed time is `Date.now()`.
 
 ```
-hmtid(1469918176385)
+hmtid(1469918176385) // 20160730223616_1M0MRXV
+
+```
+
+### Use separators
+
+```
+const hmtid = monotonicFactory(undefined, '-');
+
+hmtid() // 20211013090001-A5M3MXZ
+```
+
+```
+const hmtid = monotonicFactory(undefined, '_', true);
+
+hmtid() // 2021_10_13_09_00_01_GAS28DA
+```
+
+```
+const hmtid = monotonicFactory(undefined, '-', true);
+
+hmtid() // 2021-10-13-09-00-01-GAS28DA
 ```
 
 ## Test Suite
