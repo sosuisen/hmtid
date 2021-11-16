@@ -20,7 +20,6 @@ const ENCODING = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // Crockford's Base32
 const ENCODING_LEN = ENCODING.length;
 const TIME_MAX = Math.pow(2, 48) - 1;
 const RANDOM_LEN = 7;
-const SEPARATOR = "_";
 
 export let maxRandomCharacter = "";
 for (let i = 0; i < RANDOM_LEN; i++) maxRandomCharacter += ENCODING[ENCODING_LEN-1];
@@ -68,7 +67,7 @@ export function randomChar(prng: PRNG): string {
   return ENCODING.charAt(rand);
 }
 
-export function encodeTime(now: number): string {
+export function encodeTime(now: number, separator = '_', separateTime = false): string {
   if (isNaN(now)) {
     throw new Error(now + " must be a number");
   }
@@ -81,7 +80,10 @@ export function encodeTime(now: number): string {
   if (Number.isInteger(now) === false) {
     throw createError("time must be an integer");
   }
-  return new Date(now).toISOString().replace(/^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d).+?$/, '$1$2$3$4$5$6');
+  if (separateTime) 
+    return new Date(now).toISOString().replace(/^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d).+?$/, `$1${separator}$2${separator}$3${separator}$4${separator}$5${separator}$6`);
+  else 
+    return new Date(now).toISOString().replace(/^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d).+?$/, '$1$2$3$4$5$6');  
 }
 
 export function encodeRandom(len: number, prng: PRNG): string {
@@ -122,7 +124,7 @@ export function detectPrng(allowInsecure: boolean = false, root?: any): PRNG {
   throw createError("secure crypto unusable, insecure Math.random not allowed");
 }
 
-export function monotonicFactory(currPrng?: PRNG): HMTID {
+export function monotonicFactory(currPrng?: PRNG, separator = '_', separateTime = false): HMTID {
   if (!currPrng) {
     currPrng = detectPrng();
   }
@@ -142,13 +144,13 @@ export function monotonicFactory(currPrng?: PRNG): HMTID {
         lastTime = (seedTime / 1000 + 1) * 1000; // 1sec
         overflowedTime = lastTime;
         const incrementedRandom = (lastRandom = minRandomCharacter);
-        return encodeTime(lastTime) + SEPARATOR + incrementedRandom;
+        return encodeTime(lastTime, separator, separateTime) + separator + incrementedRandom;
       }
       const incrementedRandom = (lastRandom = incrementBase32(lastRandom));
-      return encodeTime(lastTime) + SEPARATOR + incrementedRandom;
+      return encodeTime(lastTime, separator, separateTime) + separator + incrementedRandom;
     }
     lastTime = seedTime;
     const newRandom = (lastRandom = encodeRandom(RANDOM_LEN, currPrng));
-    return encodeTime(seedTime) + SEPARATOR + newRandom;
+    return encodeTime(seedTime, separator, separateTime) + separator + newRandom;
   }
 }

@@ -62,6 +62,14 @@ describe("hmtid", function() {
     it("should return expected encoded result", function() {
       assert.strictEqual("20211015064449", HMTID.encodeTime(1634280289042))
     })
+
+    it("separates numbers by hyphen", function() {
+      assert.strictEqual("2021-10-15-06-44-49", HMTID.encodeTime(1634280289042, '-', true))
+    })
+
+    it("separates numbers by underbar", function() {
+      assert.strictEqual("2021_10_15_06_44_49", HMTID.encodeTime(1634280289042, '_', true))
+    })
   })
 
   describe("encodeRandom", function() {
@@ -78,9 +86,24 @@ describe("hmtid", function() {
       assert.strictEqual(22, hmtid().length)
     })
 
+    it("should return correct length when separated by hyphen", function() {
+      const hmtid = HMTID.monotonicFactory(undefined, '-', true);
+      assert.strictEqual(27, hmtid().length)
+    })
+
     it("should return expected time component result", function() {
       const hmtid = HMTID.monotonicFactory();
       assert.strictEqual("20211015070216_", hmtid(1634281336026).substr(0, 15))
+    })
+
+    it("should return expected time component result separated by hyphen", function() {
+      const hmtid = HMTID.monotonicFactory(undefined, '-', true);
+      assert.strictEqual("2021-10-15-07-02-16-", hmtid(1634281336026).substr(0, 20))
+    })
+
+    it("should return expected time component result separated by underbar", function() {
+      const hmtid = HMTID.monotonicFactory(undefined, '_', true);
+      assert.strictEqual("2021_10_15_07_02_16_", hmtid(1634281336026).substr(0, 20))
     })
   })
 

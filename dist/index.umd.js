@@ -13,7 +13,6 @@ var ENCODING = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // Crockford's Base32
 var ENCODING_LEN = ENCODING.length;
 var TIME_MAX = Math.pow(2, 48) - 1;
 var RANDOM_LEN = 7;
-var SEPARATOR = "_";
 exports.maxRandomCharacter = "";
 for (var i = 0; i < RANDOM_LEN; i++) {
     exports.maxRandomCharacter += ENCODING[ENCODING_LEN - 1];
@@ -57,6 +56,9 @@ function randomChar(prng) {
     return ENCODING.charAt(rand);
 }
 function encodeTime(now) {
+    var separator = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '_';
+    var separateTime = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+
     if (isNaN(now)) {
         throw new Error(now + " must be a number");
     }
@@ -69,7 +71,7 @@ function encodeTime(now) {
     if (Number.isInteger(now) === false) {
         throw createError("time must be an integer");
     }
-    return new Date(now).toISOString().replace(/^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d).+?$/, '$1$2$3$4$5$6');
+    if (separateTime) return new Date(now).toISOString().replace(/^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d).+?$/, "$1" + separator + "$2" + separator + "$3" + separator + "$4" + separator + "$5" + separator + "$6");else return new Date(now).toISOString().replace(/^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d).+?$/, '$1$2$3$4$5$6');
 }
 function encodeRandom(len, prng) {
     var str = "";
@@ -111,6 +113,9 @@ function detectPrng() {
     throw createError("secure crypto unusable, insecure Math.random not allowed");
 }
 function monotonicFactory(currPrng) {
+    var separator = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '_';
+    var separateTime = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+
     if (!currPrng) {
         currPrng = detectPrng();
     }
@@ -130,17 +135,16 @@ function monotonicFactory(currPrng) {
                 lastTime = (seedTime / 1000 + 1) * 1000; // 1sec
                 overflowedTime = lastTime;
                 var _incrementedRandom = lastRandom = minRandomCharacter;
-                return encodeTime(lastTime) + SEPARATOR + _incrementedRandom;
+                return encodeTime(lastTime, separator, separateTime) + separator + _incrementedRandom;
             }
             var incrementedRandom = lastRandom = incrementBase32(lastRandom);
-            return encodeTime(lastTime) + SEPARATOR + incrementedRandom;
+            return encodeTime(lastTime, separator, separateTime) + separator + incrementedRandom;
         }
         lastTime = seedTime;
         var newRandom = lastRandom = encodeRandom(RANDOM_LEN, currPrng);
-        return encodeTime(seedTime) + SEPARATOR + newRandom;
+        return encodeTime(seedTime, separator, separateTime) + separator + newRandom;
     };
 }
-var hmtid = monotonicFactory();
 
 exports.replaceCharAt = replaceCharAt;
 exports.incrementBase32 = incrementBase32;
@@ -149,7 +153,6 @@ exports.encodeTime = encodeTime;
 exports.encodeRandom = encodeRandom;
 exports.detectPrng = detectPrng;
 exports.monotonicFactory = monotonicFactory;
-exports.hmtid = hmtid;
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
