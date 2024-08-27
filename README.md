@@ -1,5 +1,4 @@
 # Human-readable Monotonic Timestamp Identifier (HMTID)
-
  
 > This is reduced and modified fork of [ulid](https://github.com/ulid/javascript)
 
