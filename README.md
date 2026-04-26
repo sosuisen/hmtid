@@ -1,20 +1,20 @@
 # Human-readable Monotonic Timestamp Identifier (HMTID)
 
-> This is reduced and modified fork of [ulid](https://github.com/ulid/javascript)
+> This is a reduced and modified fork of [ulid](https://github.com/ulid/javascript)
 
-- HMTID begins with a 14-digits human-readable timestamp (YYYYMMDDHHMMSS). 
-  - The timestamps in most IDs, including ulid, are encoded in a shorter form. HTMID does not encode timestamp digits.
-- HMTID ends with 7 random characters (Crockford's Base32) which have monotonic sort order. It correctly detects and handles the same second.
+- HMTID begins with a 14-digit human-readable timestamp (YYYYMMDDHHMMSS). 
+  - The timestamps in most IDs, including ulid, are encoded in a shorter form. HMTID does not encode timestamp digits.
+- HMTID ends with 7 random characters (Crockford's Base32) with monotonic sort order. It correctly detects and handles the same second.
 
 ```
 $ node bin/cli.js 
 20260426035700_QZ998PX
 ```
 
-HMTID is not suitable for universal use. It is suitable for naming local files with human-readable, monotonously and slowly generated IDs, avoiding collisions.
+HMTID is not suitable for universal use. It is suitable for naming local files with human-readable, monotonically and infrequently generated IDs, avoiding collisions.
 
 ## Spec
-- 14-digits current UTC timestamp (YYYYMMDDHHMMSS).
+- 14-digit current UTC timestamp (YYYYMMDDHHMMSS).
   - e.g.) 20211015134707 (shows 2021-10-15 13:47:07 UTC)
 - 7 random characters. Crockford's Base32 is used as shown. This alphabet excludes the letters I, L, O, and U to avoid confusion and abuse.
 
@@ -22,7 +22,7 @@ HMTID is not suitable for universal use. It is suitable for naming local files w
 0123456789ABCDEFGHJKMNPQRSTVWXYZ
 ```
 
-- An separator (underbar '_' or hyphen '-') that separates a timestamp and a random characters. Default is an underbar.
+- A separator (underbar '_' or hyphen '-') that separates the timestamp and random characters. Default is an underbar.
 - 22 characters in total.
 
 (optional) 
@@ -31,7 +31,7 @@ HMTID is not suitable for universal use. It is suitable for naming local files w
 
 ## Monotonicity
 
-When generating a HMTID within the same second, we can provide some guarantees regarding sort order. Namely, if the same second is detected, the random characters is incremented by 1 bit in the least significant bit position (with carrying). 
+When generating an HMTID within the same second, we can provide some guarantees regarding sort order. Namely, if the same second is detected, the random component is incremented by 1 in the least significant position (with carrying).
 
 The increment algorithm is similar to ulid, but the difference is that it does not throw an Error when the increment fails.
 
@@ -49,7 +49,7 @@ hmtid() // 202110130902_E3ACF82
 hmtid() // 202110130903_XER13D3
 ```
 
-If increment of random characters fails, the timestamp will be forced to be incremented ahead of time. Random characters starts from '0000000'. This reduces the accuracy of the timestamp, but gives priority to monotonicity.
+If the increment of random characters fails, the timestamp will be forced to advance ahead of time. Random characters start from '0000000'. This reduces the accuracy of the timestamp, but gives priority to monotonicity.
 
 
 ## Install with NPM
@@ -107,3 +107,7 @@ hmtid() // 2021-10-13-09-00-01-GAS28DA
 ```
 npm test
 ```
+
+## Test on Web Browser
+
+`npx serve .` and open http://localhost:3000/browser-test/
