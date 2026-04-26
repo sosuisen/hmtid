@@ -1,7 +1,7 @@
 var assert = require("assert")
 var lolex = require("lolex")
 
-var HMTID = require("./dist/index.umd.js")
+var HMTID = require("../dist/index.umd.js")
 
 describe("hmtid", function() {
   describe("prng", function() {
