@@ -139,6 +139,11 @@ describe("hmtid", function() {
       assert.strictEqual(22, hmtid().length)
     })
 
+    it("should use hyphen as separator between timestamp and random component", function() {
+      const hmtid = HMTID.monotonicFactory(undefined, '-');
+      assert.strictEqual("20211015070216-", hmtid(1634281336026).slice(0, 15))
+    })
+
     it("should return correct length when separated by hyphen with time separation", function() {
       const hmtid = HMTID.monotonicFactory(undefined, '-', true);
       assert.strictEqual(27, hmtid().length)
