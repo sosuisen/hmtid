@@ -61,7 +61,7 @@ npm i hmtid
 import { monotonicFactory } from 'hmtid'
 ```
 
-## Usage
+## Usage on Node.js
 
 ```javascript
 import { monotonicFactory } from 'hmtid'
@@ -97,6 +97,45 @@ hmtid() // 2021_10_13_09_00_01_GAS28DA
 const hmtid = monotonicFactory(undefined, '-', true);
 
 hmtid() // 2021-10-13-09-00-01-GAS28DA
+```
+
+## Usage on Web Browser
+
+### UMD via `<script>` tag
+
+Load `index.umd.js` and access the library via the global `HMTID` object.
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/hmtid/dist/index.umd.js"></script>
+<script>
+  const hmtid = HMTID.monotonicFactory();
+  console.log(hmtid()); // 20211013090001_GEMMVRX
+</script>
+```
+
+### ESM via `<script type="module">`
+
+```html
+<script type="module">
+  import { monotonicFactory } from 'https://cdn.jsdelivr.net/npm/hmtid/dist/index.esm.js';
+  const hmtid = monotonicFactory();
+  console.log(hmtid()); // 20211013090001_GEMMVRX
+</script>
+```
+
+### Use separators on Web Browser
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/hmtid/dist/index.umd.js"></script>
+<script>
+  const hmtidHyphen    = HMTID.monotonicFactory(undefined, '-');
+  const hmtidUnder     = HMTID.monotonicFactory(undefined, '_', true);
+  const hmtidHyphenSep = HMTID.monotonicFactory(undefined, '-', true);
+
+  hmtidHyphen();    // 20211013090001-A5M3MXZ
+  hmtidUnder();     // 2021_10_13_09_00_01_GAS28DA
+  hmtidHyphenSep(); // 2021-10-13-09-00-01-GAS28DA
+</script>
 ```
 
 ## Test Suite
