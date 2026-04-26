@@ -13,7 +13,7 @@ export interface LibError extends Error {
 export declare let maxRandomCharacter: string;
 /**
  * Replaces the character at the given index in a string.
- * Returns the original string unchanged if the index is out of bounds.
+ * @throws if the index is out of bounds.
  */
 export declare function replaceCharAt(str: string, index: number, char: string): string;
 /**
@@ -24,6 +24,7 @@ export declare function replaceCharAt(str: string, index: number, char: string):
 export declare function incrementBase32(str: string): string;
 /**
  * Returns a single random Crockford Base32 character using the given PRNG.
+ * @throws if the PRNG returns a value outside [0, 1).
  */
 export declare function randomChar(prng: PRNG): string;
 /**

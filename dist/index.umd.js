@@ -22,11 +22,11 @@
         minRandomCharacter += ENCODING[0];
     /**
      * Replaces the character at the given index in a string.
-     * Returns the original string unchanged if the index is out of bounds.
+     * @throws if the index is out of bounds.
      */
     function replaceCharAt(str, index, char) {
         if (index > str.length - 1) {
-            return str;
+            throw createError(`index ${index} out of bounds for string of length ${str.length}`);
         }
         return str.slice(0, index) + char + str.slice(index + 1);
     }
@@ -60,11 +60,12 @@
     }
     /**
      * Returns a single random Crockford Base32 character using the given PRNG.
+     * @throws if the PRNG returns a value outside [0, 1).
      */
     function randomChar(prng) {
-        let rand = Math.floor(prng() * ENCODING_LEN);
+        const rand = Math.floor(prng() * ENCODING_LEN);
         if (rand === ENCODING_LEN) {
-            rand = ENCODING_LEN - 1;
+            throw createError("PRNG returned 1, which is outside the expected range [0, 1)");
         }
         return ENCODING.charAt(rand);
     }
@@ -119,13 +120,13 @@
             return () => {
                 const buffer = new Uint8Array(1);
                 browserCrypto.getRandomValues(buffer);
-                return buffer[0] / 0xff;
+                return buffer[0] / 0x100;
             };
         }
         else {
             try {
                 const nodeCrypto = require("crypto");
-                return () => nodeCrypto.randomBytes(1).readUInt8() / 0xff;
+                return () => nodeCrypto.randomBytes(1).readUInt8() / 0x100;
             }
             catch (e) { }
         }

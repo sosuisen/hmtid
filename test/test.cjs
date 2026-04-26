@@ -19,8 +19,8 @@ describe("hmtid", function() {
       assert.strictEqual("ABCDX", HMTID.replaceCharAt("ABCDE", 4, "X"))
     })
 
-    it("returns original string when index is out of bounds", function() {
-      assert.strictEqual("ABCDE", HMTID.replaceCharAt("ABCDE", 10, "X"))
+    it("throws when index is out of bounds", function() {
+      assert.throws(() => HMTID.replaceCharAt("ABCDE", 10, "X"))
     })
   })
 
@@ -83,6 +83,10 @@ describe("hmtid", function() {
 
     it("should never return an empty string", function() {
       assert.strictEqual(undefined, sample[""])
+    })
+
+    it("throws when PRNG returns 1", function() {
+      assert.throws(() => HMTID.randomChar(() => 1))
     })
   })
 
