@@ -6,12 +6,9 @@
   - The timestamps in most IDs, including ulid, are encoded in a shorter form. HMTID does not encode timestamp digits.
 - HMTID ends with 7 random characters (Crockford's Base32) with monotonic sort order. It correctly detects and handles the same second.
 
-```
-$ node bin/cli.js 
-20260426035700_QZ998PX
-```
+- e.g.) `20260426035700_QZ998PX`
 
-HMTID is not suitable for universal use. It is suitable for naming local files with human-readable, monotonically and infrequently generated IDs, avoiding collisions.
+- HMTID is not suitable for universal use. It is suitable for naming local files with human-readable, monotonically and infrequently generated IDs, avoiding collisions.
 
 ## Spec
 - 14-digit current UTC timestamp (YYYYMMDDHHMMSS).
@@ -26,8 +23,8 @@ HMTID is not suitable for universal use. It is suitable for naming local files w
 - 22 characters in total.
 
 (optional) 
-- 14 digits timestamp can be separated by underbar '_' or hyphen '-'. e.g.) YYYY_MM_DD_HH_MM_SS, YYYY-MM-DD-HH-MM-SS 
-- In such case, 27 characters in total.
+- 14-digit timestamp can be separated by underbar '_' or hyphen '-'. e.g.) YYYY_MM_DD_HH_MM_SS, YYYY-MM-DD-HH-MM-SS 
+- In that case, 27 characters in total.
 
 ## Monotonicity
 
@@ -38,15 +35,15 @@ The increment algorithm is similar to ulid, but the difference is that it does n
 For example:
 
 ```
-hmtid() // 202110130900_GEMMVRX
-hmtid() // 202110130900_GEMMVRY <- Monotonic increment in the same second
+hmtid() // 20211013090000_GEMMVRX
+hmtid() // 20211013090000_GEMMVRY <- Monotonic increment in the same second
 ...
-hmtid() // 202110130900_ZZZZZZZ
-hmtid() // 202110130901_0000000  <- It does not throw new Error()!
-hmtid() // 202110130901_0000001
-hmtid() // 202110130901_0000002
-hmtid() // 202110130902_E3ACF82
-hmtid() // 202110130903_XER13D3
+hmtid() // 20211013090000_ZZZZZZZ
+hmtid() // 20211013090001_0000000  <- It does not throw new Error()!
+hmtid() // 20211013090001_0000001
+hmtid() // 20211013090001_0000002
+hmtid() // 20211013090002_E3ACF82
+hmtid() // 20211013090003_XER13D3
 ```
 
 If the increment of random characters fails, the timestamp will be forced to advance ahead of time. Random characters start from '0000000'. This reduces the accuracy of the timestamp, but gives priority to monotonicity.
@@ -70,7 +67,7 @@ import { monotonicFactory } from 'hmtid'
 import { monotonicFactory } from 'hmtid'
 const hmtid = monotonicFactory();
 
-hmtid() // 20211013090001_GEMMVRX
+hmtid(); // 20211013090001_GEMMVRX
 ```
 
 ### Seed Time
