@@ -1,11 +1,15 @@
+// PRNG (Pseudo-Random Number Generator)
+// A function that returns a random number in [0, 1)
 export interface PRNG {
   (): number;
 }
 
+/** A function that generates a monotonically increasing HMTID string. */
 export interface HMTID {
   (seedTime?: number): string;
 }
 
+/** Error type that includes a `source` field identifying the library. */
 export interface LibError extends Error {
   source: string;
 }
@@ -21,22 +25,30 @@ const ENCODING_LEN = ENCODING.length;
 const TIME_MAX = Math.pow(2, 48) - 1;
 const RANDOM_LEN = 7;
 
+/** The largest possible random component value (all characters at maximum). */
 export let maxRandomCharacter = "";
 for (let i = 0; i < RANDOM_LEN; i++) maxRandomCharacter += ENCODING[ENCODING_LEN-1];
 let minRandomCharacter = "";
 for (let i = 0; i < RANDOM_LEN; i++) minRandomCharacter += ENCODING[0];
 
-
-
+/**
+ * Replaces the character at the given index in a string.
+ * Returns the original string unchanged if the index is out of bounds.
+ */
 export function replaceCharAt(str: string, index: number, char: string) {
   if (index > str.length - 1) {
     return str;
   }
-  return str.substr(0, index) + char + str.substr(index + 1);
+  return str.slice(0, index) + char + str.slice(index + 1);
 }
 
+/**
+ * Increments a Crockford Base32 encoded string by 1 in the least significant position,
+ * carrying over to higher positions as needed.
+ * @throws if the string contains an invalid character or cannot be incremented further.
+ */
 export function incrementBase32(str: string): string {
-  let done: string = undefined;
+  let done: string | undefined;
   let index = str.length;
   let char;
   let charIndex;
@@ -59,6 +71,9 @@ export function incrementBase32(str: string): string {
   throw createError("cannot increment this string");
 }
 
+/**
+ * Returns a single random Crockford Base32 character using the given PRNG.
+ */
 export function randomChar(prng: PRNG): string {
   let rand = Math.floor(prng() * ENCODING_LEN);
   if (rand === ENCODING_LEN) {
@@ -67,6 +82,13 @@ export function randomChar(prng: PRNG): string {
   return ENCODING.charAt(rand);
 }
 
+/**
+ * Encodes a Unix timestamp (ms) as a 14-digit UTC string (YYYYMMDDHHMMSS).
+ * @param now - Timestamp in milliseconds.
+ * @param separator - Character used between time components when `separateTime` is true.
+ * @param separateTime - If true, inserts separators between each time component.
+ * @throws if `now` is NaN, negative, non-integer, or exceeds the maximum encodable value.
+ */
 export function encodeTime(now: number, separator = '_', separateTime = false): string {
   if (isNaN(now)) {
     throw new Error(now + " must be a number");
@@ -80,12 +102,15 @@ export function encodeTime(now: number, separator = '_', separateTime = false): 
   if (Number.isInteger(now) === false) {
     throw createError("time must be an integer");
   }
-  if (separateTime) 
+  if (separateTime)
     return new Date(now).toISOString().replace(/^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d).+?$/, `$1${separator}$2${separator}$3${separator}$4${separator}$5${separator}$6`);
-  else 
-    return new Date(now).toISOString().replace(/^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d).+?$/, '$1$2$3$4$5$6');  
+  else
+    return new Date(now).toISOString().replace(/^(\d\d\d\d)-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d).+?$/, '$1$2$3$4$5$6');
 }
 
+/**
+ * Generates a random string of the given length using Crockford Base32 characters.
+ */
 export function encodeRandom(len: number, prng: PRNG): string {
   let str = "";
   for (; len > 0; len--) {
@@ -94,7 +119,16 @@ export function encodeRandom(len: number, prng: PRNG): string {
   return str;
 }
 
-export function detectPrng(allowInsecure: boolean = false, root?: any): PRNG {
+type CryptoRoot = { crypto?: Crypto; msCrypto?: Crypto } | null;
+
+/**
+ * Detects and returns a cryptographically secure PRNG.
+ * Uses `window.crypto` in browsers, or Node.js `crypto` module in server environments.
+ * @param allowInsecure - If true, falls back to `Math.random()` when secure crypto is unavailable.
+ * @param root - Optional root object to use instead of `window` (mainly for testing).
+ * @throws if secure crypto is unavailable and `allowInsecure` is false.
+ */
+export function detectPrng(allowInsecure: boolean = false, root?: CryptoRoot): PRNG {
   if (!root) {
     root = typeof window !== "undefined" ? window : null;
   }
@@ -103,10 +137,10 @@ export function detectPrng(allowInsecure: boolean = false, root?: any): PRNG {
 
   if (browserCrypto) {
     return () => {
-        const buffer = new Uint8Array(1);
-        browserCrypto.getRandomValues(buffer);
-        return buffer[0] / 0xff;
-    }
+      const buffer = new Uint8Array(1);
+      browserCrypto.getRandomValues(buffer);
+      return buffer[0] / 0xff;
+    };
   } else {
     try {
       const nodeCrypto = require("crypto");
@@ -124,6 +158,14 @@ export function detectPrng(allowInsecure: boolean = false, root?: any): PRNG {
   throw createError("secure crypto unusable, insecure Math.random not allowed");
 }
 
+/**
+ * Creates an HMTID generator function with monotonic sort order guarantee.
+ * Within the same second, the random component is incremented to maintain order.
+ * If the random component overflows, the timestamp is advanced by 1 second.
+ * @param currPrng - Custom PRNG to use. Defaults to a cryptographically secure PRNG.
+ * @param separator - Character inserted between the timestamp and random components. Default: `'_'`.
+ * @param separateTime - If true, inserts the separator between each time component. Default: `false`.
+ */
 export function monotonicFactory(currPrng?: PRNG, separator = '_', separateTime = false): HMTID {
   if (!currPrng) {
     currPrng = detectPrng();
@@ -132,8 +174,8 @@ export function monotonicFactory(currPrng?: PRNG, separator = '_', separateTime 
   let lastRandom: string;
   let overflowedTime: number = 0;
   return function (seedTime?: number): string {
-    if (isNaN(seedTime)) {
-      seedTime = Date.now()
+    if (seedTime === undefined || isNaN(seedTime)) {
+      seedTime = Date.now();
     }
     if (seedTime < overflowedTime) {
       seedTime = overflowedTime;
@@ -152,5 +194,5 @@ export function monotonicFactory(currPrng?: PRNG, separator = '_', separateTime 
     lastTime = seedTime;
     const newRandom = (lastRandom = encodeRandom(RANDOM_LEN, currPrng));
     return encodeTime(seedTime, separator, separateTime) + separator + newRandom;
-  }
+  };
 }

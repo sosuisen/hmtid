@@ -1,23 +1,30 @@
-var assert = require("assert")
-var FakeTimers = require("@sinonjs/fake-timers")
+const assert = require("assert")
+const FakeTimers = require("@sinonjs/fake-timers")
 
-var HMTID = require("../dist/index.umd.js")
+const HMTID = require("../dist/index.umd.js")
+
+const VALID_BASE32 = /^[0-9ABCDEFGHJKMNPQRSTVWXYZ]+$/
 
 describe("hmtid", function() {
-  describe("prng", function() {
-    var prng = HMTID.detectPrng()
-
-    it("should produce a number", function() {
-      assert.strictEqual(false, isNaN(prng()))
+  describe("replaceCharAt", function() {
+    it("replaces character at given index", function() {
+      assert.strictEqual("ABXDE", HMTID.replaceCharAt("ABCDE", 2, "X"))
     })
 
-    it("should be between 0 and 1", function() {
-      var num = prng()
-      assert(num >= 0 && num <= 1)
+    it("replaces first character", function() {
+      assert.strictEqual("XBCDE", HMTID.replaceCharAt("ABCDE", 0, "X"))
+    })
+
+    it("replaces last character", function() {
+      assert.strictEqual("ABCDX", HMTID.replaceCharAt("ABCDE", 4, "X"))
+    })
+
+    it("returns original string when index is out of bounds", function() {
+      assert.strictEqual("ABCDE", HMTID.replaceCharAt("ABCDE", 10, "X"))
     })
   })
 
-  describe("incremenet base32", function() {
+  describe("increment base32", function() {
     it("increments correctly", function() {
       assert.strictEqual("A109D", HMTID.incrementBase32("A109C"))
     })
@@ -35,19 +42,40 @@ describe("hmtid", function() {
         HMTID.incrementBase32("ZZZ")
       })
     })
+
+    it("throws on invalid character", function() {
+      assert.throws(function() {
+        HMTID.incrementBase32("A1_Z")
+      })
+    })
+  })
+
+  describe("prng", function() {
+    const prng = HMTID.detectPrng()
+
+    it("should produce a number", function() {
+      assert(!isNaN(prng()))
+    })
+
+    it("should be between 0 and 1", function() {
+      const num = prng()
+      assert(num >= 0 && num <= 1)
+    })
   })
 
   describe("randomChar", function() {
-    var sample = {}
-    var prng = HMTID.detectPrng()
+    const sample = {}
+    const prng = HMTID.detectPrng()
 
-    for (var x = 0; x < 320000; x++) {
-      char = String(HMTID.randomChar(prng)) // for if it were to ever return undefined
-      if (sample[char] === undefined) {
-        sample[char] = 0
+    before(function() {
+      for (let x = 0; x < 320000; x++) {
+        let char = String(HMTID.randomChar(prng))
+        if (sample[char] === undefined) {
+          sample[char] = 0
+        }
+        sample[char] += 1
       }
-      sample[char] += 1
-    }
+    })
 
     it("should never return undefined", function() {
       assert.strictEqual(undefined, sample["undefined"])
@@ -70,13 +98,33 @@ describe("hmtid", function() {
     it("separates numbers by underbar", function() {
       assert.strictEqual("2021_10_15_06_44_49", HMTID.encodeTime(1634280289042, '_', true))
     })
+
+    it("throws when time is NaN", function() {
+      assert.throws(function() { HMTID.encodeTime(NaN) })
+    })
+
+    it("throws when time is negative", function() {
+      assert.throws(function() { HMTID.encodeTime(-1) })
+    })
+
+    it("throws when time exceeds maximum", function() {
+      assert.throws(function() { HMTID.encodeTime(Math.pow(2, 48)) })
+    })
+
+    it("throws when time is not an integer", function() {
+      assert.throws(function() { HMTID.encodeTime(1634280289042.5) })
+    })
   })
 
   describe("encodeRandom", function() {
-    var prng = HMTID.detectPrng()
+    const prng = HMTID.detectPrng()
 
     it("should return correct length", function() {
       assert.strictEqual(12, HMTID.encodeRandom(12, prng).length)
+    })
+
+    it("should only contain valid Base32 characters", function() {
+      assert(VALID_BASE32.test(HMTID.encodeRandom(100, prng)))
     })
   })
 
@@ -86,24 +134,36 @@ describe("hmtid", function() {
       assert.strictEqual(22, hmtid().length)
     })
 
-    it("should return correct length when separated by hyphen", function() {
+    it("should return correct length when separator is hyphen", function() {
+      const hmtid = HMTID.monotonicFactory(undefined, '-');
+      assert.strictEqual(22, hmtid().length)
+    })
+
+    it("should return correct length when separated by hyphen with time separation", function() {
       const hmtid = HMTID.monotonicFactory(undefined, '-', true);
       assert.strictEqual(27, hmtid().length)
     })
 
     it("should return expected time component result", function() {
       const hmtid = HMTID.monotonicFactory();
-      assert.strictEqual("20211015070216_", hmtid(1634281336026).substr(0, 15))
+      assert.strictEqual("20211015070216_", hmtid(1634281336026).slice(0, 15))
     })
 
     it("should return expected time component result separated by hyphen", function() {
       const hmtid = HMTID.monotonicFactory(undefined, '-', true);
-      assert.strictEqual("2021-10-15-07-02-16-", hmtid(1634281336026).substr(0, 20))
+      assert.strictEqual("2021-10-15-07-02-16-", hmtid(1634281336026).slice(0, 20))
     })
 
     it("should return expected time component result separated by underbar", function() {
       const hmtid = HMTID.monotonicFactory(undefined, '_', true);
-      assert.strictEqual("2021_10_15_07_02_16_", hmtid(1634281336026).substr(0, 20))
+      assert.strictEqual("2021_10_15_07_02_16_", hmtid(1634281336026).slice(0, 20))
+    })
+
+    it("should generate IDs in monotonically increasing order", function() {
+      const hmtid = HMTID.monotonicFactory()
+      const ids = Array.from({ length: 100 }, () => hmtid())
+      const sorted = [...ids].sort()
+      assert.deepStrictEqual(ids, sorted)
     })
   })
 
@@ -113,8 +173,8 @@ describe("hmtid", function() {
     }
 
     describe("without seedTime", function() {
-      var stubbedHmtid = HMTID.monotonicFactory(stubbedPrng)
-      var clock
+      const stubbedHmtid = HMTID.monotonicFactory(stubbedPrng)
+      let clock
 
       before(function() {
         clock = FakeTimers.install({
@@ -145,7 +205,7 @@ describe("hmtid", function() {
     })
 
     describe("with seedTime", function() {
-      var stubbedHmtid = HMTID.monotonicFactory(stubbedPrng)
+      const stubbedHmtid = HMTID.monotonicFactory(stubbedPrng)
 
       it("first call", function() {
         assert.strictEqual("20160730223616_YYYYYYY", stubbedHmtid(1469918176385))
@@ -173,15 +233,13 @@ describe("hmtid", function() {
     })
   })
 
-
-  
   describe("force increment seedTime", function() {
     function stubbedPrng() {
       return 0.99
     }
 
     describe("with seedTime", function() {
-      var stubbedHmtid = HMTID.monotonicFactory(stubbedPrng)
+      const stubbedHmtid = HMTID.monotonicFactory(stubbedPrng)
 
       it("first call", function() {
         assert.strictEqual("20160730223616_ZZZZZZZ", stubbedHmtid(1469918176385))
@@ -210,6 +268,7 @@ describe("hmtid", function() {
       it("seventh call with 1001 greater than", function() {
         assert.strictEqual("20160730223617_0000005", stubbedHmtid(1469918177386))
       })
+
       it("eighth call with 2000 greater than", function() {
         assert.strictEqual("20160730223618_ZZZZZZZ", stubbedHmtid(1469918178385))
       })
