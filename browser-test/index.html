@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HMTID Browser Test</title>
+  <style>
+    body { font-family: monospace; padding: 2rem; }
+    h2 { margin-top: 2rem; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+    h3 { margin-top: 1.2rem; color: #555; }
+    .pass { color: green; }
+    .fail { color: red; }
+    .id { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }
+    .ids { line-height: 2; }
+  </style>
+</head>
+<body>
+  <h1>HMTID Rollup Output Test</h1>
+
+  <!-- UMD -->
+  <h2>1. index.umd.js (UMD)</h2>
+  <h3>Global variable</h3>
+  <div id="umd-global"></div>
+  <h3>Generated IDs (monotonicity)</h3>
+  <div id="umd-ids" class="ids"></div>
+  <h3>Separator variants</h3>
+  <div id="umd-variants"></div>
+
+  <!-- ESM -->
+  <h2>2. index.esm.js (ES Module)</h2>
+  <h3>Generated IDs (monotonicity)</h3>
+  <div id="esm-ids" class="ids"></div>
+  <h3>Separator variants</h3>
+  <div id="esm-variants"></div>
+
+  <!-- ESNext -->
+  <h2>3. index.js (ESNext)</h2>
+  <h3>Generated IDs (monotonicity)</h3>
+  <div id="esnext-ids" class="ids"></div>
+  <h3>Separator variants</h3>
+  <div id="esnext-variants"></div>
+
+  <!-- UMD: loaded via script tag, available as window.HMTID -->
+  <script src="../dist/index.umd.js"></script>
+  <script>
+    function pass(msg) { return '<span class="pass">✓ ' + msg + '</span>'; }
+    function fail(msg) { return '<span class="fail">✗ ' + msg + '</span>'; }
+    function id(s)     { return '<span class="id">' + s + '</span>'; }
+
+    function runTest(prefix, factory) {
+      const hmtid       = factory();
+      const hmtidHyphen = factory(undefined, '-');
+      const hmtidUnder  = factory(undefined, '_', true);
+      const hmtidHyphenSep = factory(undefined, '-', true);
+
+      const generated = [];
+      for (let i = 0; i < 10; i++) generated.push(hmtid());
+      const sorted = [...generated].sort();
+      const isMonotonic = generated.every((v, i) => v === sorted[i]);
+
+      document.getElementById(prefix + '-ids').innerHTML =
+        generated.map(s => id(s)).join('<br>') + '<br><br>' +
+        (isMonotonic ? pass('Sort order matches generation order') : fail('NOT monotonic'));
+
+      document.getElementById(prefix + '-variants').innerHTML = [
+        'Default (underbar):      ' + id(hmtid()),
+        'Separator hyphen:        ' + id(hmtidHyphen()),
+        'Separated by underbar:   ' + id(hmtidUnder()),
+        'Separated by hyphen:     ' + id(hmtidHyphenSep()),
+      ].join('<br>');
+    }
+
+    // 1. UMD
+    document.getElementById('umd-global').innerHTML =
+      typeof HMTID !== 'undefined'
+        ? pass('window.HMTID is defined')
+        : fail('window.HMTID is not defined');
+
+    runTest('umd', HMTID.monotonicFactory);
+  </script>
+
+  <!-- ESM: loaded via import -->
+  <script type="module">
+    import { monotonicFactory } from '../dist/index.esm.js';
+
+    function pass(msg) { return '<span class="pass">✓ ' + msg + '</span>'; }
+    function fail(msg) { return '<span class="fail">✗ ' + msg + '</span>'; }
+    function id(s)     { return '<span class="id">' + s + '</span>'; }
+
+    function runTest(prefix, factory) {
+      const hmtid          = factory();
+      const hmtidHyphen    = factory(undefined, '-');
+      const hmtidUnder     = factory(undefined, '_', true);
+      const hmtidHyphenSep = factory(undefined, '-', true);
+
+      const generated = [];
+      for (let i = 0; i < 10; i++) generated.push(hmtid());
+      const sorted = [...generated].sort();
+      const isMonotonic = generated.every((v, i) => v === sorted[i]);
+
+      document.getElementById(prefix + '-ids').innerHTML =
+        generated.map(s => id(s)).join('<br>') + '<br><br>' +
+        (isMonotonic ? pass('Sort order matches generation order') : fail('NOT monotonic'));
+
+      document.getElementById(prefix + '-variants').innerHTML = [
+        'Default (underbar):      ' + id(hmtid()),
+        'Separator hyphen:        ' + id(hmtidHyphen()),
+        'Separated by underbar:   ' + id(hmtidUnder()),
+        'Separated by hyphen:     ' + id(hmtidHyphenSep()),
+      ].join('<br>');
+    }
+
+    runTest('esm', monotonicFactory);
+  </script>
+
+  <!-- ESNext: loaded via import -->
+  <script type="module">
+    import { monotonicFactory } from '../dist/index.js';
+
+    function pass(msg) { return '<span class="pass">✓ ' + msg + '</span>'; }
+    function fail(msg) { return '<span class="fail">✗ ' + msg + '</span>'; }
+    function id(s)     { return '<span class="id">' + s + '</span>'; }
+
+    function runTest(prefix, factory) {
+      const hmtid          = factory();
+      const hmtidHyphen    = factory(undefined, '-');
+      const hmtidUnder     = factory(undefined, '_', true);
+      const hmtidHyphenSep = factory(undefined, '-', true);
+
+      const generated = [];
+      for (let i = 0; i < 10; i++) generated.push(hmtid());
+      const sorted = [...generated].sort();
+      const isMonotonic = generated.every((v, i) => v === sorted[i]);
+
+      document.getElementById(prefix + '-ids').innerHTML =
+        generated.map(s => id(s)).join('<br>') + '<br><br>' +
+        (isMonotonic ? pass('Sort order matches generation order') : fail('NOT monotonic'));
+
+      document.getElementById(prefix + '-variants').innerHTML = [
+        'Default (underbar):      ' + id(hmtid()),
+        'Separator hyphen:        ' + id(hmtidHyphen()),
+        'Separated by underbar:   ' + id(hmtidUnder()),
+        'Separated by hyphen:     ' + id(hmtidHyphenSep()),
+      ].join('<br>');
+    }
+
+    runTest('esnext', monotonicFactory);
+  </script>
+</body>
+</html>
