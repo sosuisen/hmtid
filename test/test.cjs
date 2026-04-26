@@ -1,5 +1,5 @@
 var assert = require("assert")
-var lolex = require("lolex")
+var FakeTimers = require("@sinonjs/fake-timers")
 
 var HMTID = require("../dist/index.umd.js")
 
@@ -117,7 +117,7 @@ describe("hmtid", function() {
       var clock
 
       before(function() {
-        clock = lolex.install({
+        clock = FakeTimers.install({
           now: 1634282804081,
           toFake: ["Date"],
         })

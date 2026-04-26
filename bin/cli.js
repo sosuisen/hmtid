@@ -1,4 +1,4 @@
 #! /usr/bin/env node
 
-var HMTID = require('../dist/index.umd.js')
-process.stdout.write(HMTID.monotonicFactory()())
+import { monotonicFactory } from '../dist/index.esm.js'
+process.stdout.write(monotonicFactory()())
