@@ -147,3 +147,9 @@ npm test
 ## Test on Web Browser
 
 `npx serve .` and open http://localhost:3000/browser-test/
+
+## Caveats
+
+### Worker Threads / Web Workers
+
+`worker_threads` (Node.js) and Web Workers run in separate JS contexts. Each worker that calls `monotonicFactory()` holds its own independent state. If two workers generate an ID within the same second, they may produce the same timestamp with different random components — no collision, but **global sort order is not guaranteed**.
