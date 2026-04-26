@@ -10,7 +10,7 @@
     "type": "git",
     "url": "git+https://github.com/ulid/javascript.git"
   },
-  "author": "",
+  "author": "sosuisen",
   "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.27.1",
